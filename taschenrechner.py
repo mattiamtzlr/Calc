@@ -2,6 +2,8 @@
 import math
 from sys import argv
 
+from black import out
+
 def tokenize(program):
     return program.replace("(", " ( ").replace(")", " ) ").split()
 
@@ -72,11 +74,15 @@ def evaluate(x):
         if operator == 'var':
             name, value = x[1:]
             value = evaluate(value) # value evaluieren
-            
+
             # variable abspeichern
             builtins[name] = value
             # als bestätigung value zurückgeben
             return value
+        
+        elif operator == 'def':
+            ...
+            # (def umfang radius (* (* radius 2) pi))
 
         else:
             func = builtins[operator]
@@ -89,13 +95,37 @@ def evaluate(x):
 
 #===================== Input
 def repl():
-    print("Drücke 'q' oder 'x' um das Programm zu beenden.")
+    print("Press 'q' or 'x' to exit program.")
     done = False
     while not done:
         try:
             prog = input('> ').strip()
             if prog.lower() in ('q', 'quit', 'exit', 'x'):
                 done = True
+
+            elif prog.lower()[0:2] == 'f:':
+                filename = prog.split(maxsplit=1)[1]
+
+                with open(filename) as f:
+                    content = f.read()
+                print(evaluate(parse(tokenize(content))))
+
+            elif prog.lower()[0:2] == 't:':
+                testName = prog.split(maxsplit=1)[1]
+                
+                with open(f"tests/{testName}-calc.txt") as f:
+                    content = f.read()
+                
+                output = evaluate(parse(tokenize(content)))
+
+                with open(f"tests/{testName}-sol.txt") as f:
+                    solution = float(f.read())
+                
+                if output == solution:
+                    print("Test passed")
+                else:
+                    print(f"Test failed: {output} != {solution}")
+
             else:
                 print(evaluate(parse(tokenize(prog))))
         except Exception as e:
@@ -135,8 +165,8 @@ if __name__ == '__main__' and testScript:
             print(func.__name__, 'not OK!, Failure:', e)
 
     if ok:
-        print('Alles OK!')
+        print('Everything OK!')
         print()
     else:
-        print('\nEs scheint noch nicht alles ok zu sein. Korrigiere die oben angezeigten Fehler.')
+        print('\nSomething seems to be wrong. Please correct the above errors.')
 repl()
