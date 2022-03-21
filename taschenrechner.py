@@ -61,6 +61,8 @@ builtins = {
     'pi':   3.141592653589793,
 }
 
+functions = {}
+
 #---------------------
 def evaluate(x):
     if type(x) == float or type(x) == int:
@@ -81,17 +83,38 @@ def evaluate(x):
             return value
         
         elif operator == 'def':
-            ...
-            # (def umfang radius (* (* radius 2) pi))
+            funcName = x[1][0]
+            params = x[1][1:]
+            funcBody = x[2]
+
+            functions[funcName] = {
+                "params": params,
+                "body": funcBody
+            }
+
+            return f"New function {funcName}"
 
         else:
-            func = builtins[operator]
-            args = []
+            if operator in builtins.keys():
+                func = builtins[operator]
+                args = []
 
-            for arg in x[1:]:
-                args.append(evaluate(arg)) # solange evaluieren bis nur noch zahlen
-            return func(*args)
+                for arg in x[1:]:
+                    args.append(evaluate(arg)) # solange evaluieren bis nur noch zahlen
+                return func(*args)
 
+            else:
+                func = functions[operator]
+
+                givenParams = x[1:]
+                funcParams = func["params"]
+                for i in range(len(funcParams)):
+                    builtins[funcParams[i]] = evaluate(givenParams[i])
+                
+                return evaluate(func["body"])
+                
+                
+                
 
 #===================== Input
 def repl():
