@@ -2,8 +2,6 @@
 import math
 from sys import argv
 
-from black import out
-
 def tokenize(program):
     return program.replace("(", " ( ").replace(")", " ) ").split()
 
