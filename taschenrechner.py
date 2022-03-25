@@ -59,8 +59,6 @@ builtins = {
     'pi':   3.141592653589793,
 }
 
-functions = {}
-
 #---------------------
 def evaluate(x):
     if type(x) == float or type(x) == int:
@@ -80,13 +78,36 @@ def evaluate(x):
             # als bestätigung value zurückgeben
             return value
 
+        elif operator == 'func':
+            # Funktion: (func f ((a b) (+ a b)))
+            name, value = x[1:]
+
+            params = value[0]
+            body = value[1]
+
+            builtins[name] = [params, body]
+
+            return f"New function '{name}'"
+
         else:
             func = builtins[operator]
             args = []
 
             for arg in x[1:]:
                 args.append(evaluate(arg)) # solange evaluieren bis nur noch zahlen
-            return func(*args)
+
+            if type(func) == list: # eigene Funktion: [[p1, p2], [body]]
+                params = func[0]
+                body = func[1]
+
+                # alle parameter abspeichern in buitins
+                for i in range(len(args)):
+                    builtins[params[i]] = args[i]
+
+                return evaluate(body)
+
+            else:
+                return func(*args)
 
 #===================== Input
 def repl():
@@ -103,6 +124,7 @@ def repl():
 
                 with open(filename) as f:
                     content = f.read()
+                
                 print(evaluate(parse(tokenize(content))))
 
             else:
