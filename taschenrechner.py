@@ -79,37 +79,14 @@ def evaluate(x):
             builtins[name] = value
             # als bestätigung value zurückgeben
             return value
-        
-        elif operator == 'def':
-            funcName = x[1][0]
-            params = x[1][1:]
-            funcBody = x[2]
-
-            functions[funcName] = {
-                "params": params,
-                "body": funcBody
-            }
-
-            return f"New function {funcName}"
 
         else:
-            if operator in builtins.keys():
-                func = builtins[operator]
-                args = []
+            func = builtins[operator]
+            args = []
 
-                for arg in x[1:]:
-                    args.append(evaluate(arg)) # solange evaluieren bis nur noch zahlen
-                return func(*args)
-
-            else:
-                func = functions[operator]
-
-                givenParams = x[1:]
-                funcParams = func["params"]
-                for i in range(len(funcParams)):
-                    builtins[funcParams[i]] = evaluate(givenParams[i])
-                
-                return evaluate(func["body"])
+            for arg in x[1:]:
+                args.append(evaluate(arg)) # solange evaluieren bis nur noch zahlen
+            return func(*args)
 
 #===================== Input
 def repl():
