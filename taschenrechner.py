@@ -110,9 +110,6 @@ def evaluate(x):
                     builtins[funcParams[i]] = evaluate(givenParams[i])
                 
                 return evaluate(func["body"])
-                
-                
-                
 
 #===================== Input
 def repl():
@@ -130,22 +127,6 @@ def repl():
                 with open(filename) as f:
                     content = f.read()
                 print(evaluate(parse(tokenize(content))))
-
-            elif prog.lower()[0:2] == 't:':
-                testName = prog.split(maxsplit=1)[1]
-                
-                with open(f"tests/{testName}-calc.txt") as f:
-                    content = f.read()
-                
-                output = evaluate(parse(tokenize(content)))
-
-                with open(f"tests/{testName}-sol.txt") as f:
-                    solution = float(f.read())
-                
-                if output == solution:
-                    print("Test passed")
-                else:
-                    print(f"Test failed: {output} != {solution}")
 
             else:
                 print(evaluate(parse(tokenize(prog))))
