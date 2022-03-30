@@ -101,8 +101,8 @@ def evaluate(x):
                 body = func[1]
 
                 # alle parameter abspeichern in buitins
-                for i in range(len(args)):
-                    builtins[params[i]] = args[i]
+                for p, a in zip(params, args):
+                    builtins[p] = a
 
                 return evaluate(body)
 
