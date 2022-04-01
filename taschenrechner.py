@@ -1,12 +1,20 @@
 #---------------------
 import math
 from sys import argv
+from sys import version_info
 
-def tokenize(program):
+if version_info.major != 3 or version_info.minor != 10:
+    print("This script needs at least Python version 3.10 as it uses structural pattern matching. Please update and try again.")
+    input()
+    exit()
+
+def tokenize(program: str) -> list[str]:
+    """Tokenizes the program by adding spaces around brackets and splitting it afterwards"""
     return program.replace("(", " ( ").replace(")", " ) ").split()
 
 #---------------------
-def parse(tokens):
+def parse(tokens: list):
+    """Parses tokens into a list to be evaluated"""
     token = tokens.pop(0)
     if token == '(':
         lst = []
@@ -19,6 +27,7 @@ def parse(tokens):
 
 #---------------------
 def parse_atom(token):
+    """Parses single tokens into numbers, floats or strings"""
     try:
         token = int(token)
     except ValueError:
@@ -61,42 +70,33 @@ builtins = {
 
 #---------------------
 def evaluate(x):
-    if type(x) == float or type(x) == int:
-        return x
-    elif type(x) == str:
-        return builtins[x]
-    else:
-        operator = x[0]
-
-        # SPECIAL FORMS
-        if operator == 'var':
-            name, value = x[1:]
-            value = evaluate(value) # value evaluieren
-
-            # variable abspeichern
+    """Evaluates the tokenized and parsed program"""
+    match x:
+        case int(num) | float(num):
+            return num
+        
+        case str(name):
+            return builtins[name]
+        
+        case ['var', name, value]:
+            value = evaluate(value)
             builtins[name] = value
-            # als bestätigung value zurückgeben
             return value
-
-        elif operator == 'func':
-            # Funktion: (func f ((a b) (+ a b)))
-            name, value = x[1:]
-
-            params = value[0]
-            body = value[1]
-
+        
+        case ['func', name, [params, body]]:
             builtins[name] = [params, body]
-
             return f"New function '{name}'"
-
-        else:
+        
+        case [operator, *args]:
             func = builtins[operator]
-            args = []
+            args = [evaluate(arg) for arg in args]
 
-            for arg in x[1:]:
-                args.append(evaluate(arg)) # solange evaluieren bis nur noch zahlen
+            if callable(func):
+                # Eingebaute Funktion
+                return func(*args)
 
-            if type(func) == list: # eigene Funktion: [[p1, p2], [body]]
+            else:
+                # eigene Funktion: [[p1, p2], [body]]
                 params = func[0]
                 body = func[1]
 
@@ -105,9 +105,7 @@ def evaluate(x):
                     builtins[p] = a
 
                 return evaluate(body)
-
-            else:
-                return func(*args)
+                
 
 #===================== Input
 def repl():
