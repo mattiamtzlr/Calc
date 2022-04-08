@@ -51,6 +51,9 @@ def mult(a, b):
 def div(a, b):
     return a / b
 
+def equals(a, b):
+    return a == b
+
 def sqrt(a):
     return math.sqrt(a)
 
@@ -62,6 +65,7 @@ builtins = {
     '-':    sub,
     '*':    mult,
     '/':    div,
+    '==':   equals,
     'sqrt': sqrt,
     'expt': expt,
     'e':    2.718281828459045,
@@ -89,27 +93,36 @@ def evaluate(expr, env):
             env[name] = [params, body]
             return f"New function '{name}'"
         
+        case ["if", condition, _do, _else]:
+
+            # (if
+            #   (== 4 6)        | condition
+            #   (+ 2 3)         | return if condition is true
+            #   (/ 6 2)         | return if condition is false
+            # )
+
+            if evaluate(condition, env):
+                return evaluate(_do, env)
+            else:
+                return evaluate(_else, env)
+        
         case [operator, *args]:
             func = env[operator]
             args = [evaluate(arg, env) for arg in args]
 
-            if callable(func):
-                # Eingebaute Funktion
-                return func(*args)
+            match func:
+                case [params, body]:
+                    # eigene Funktion, Syntax: [[p1, p2], [body]]
+                    newEnv = ChainMap({}, env) # neue Umgebung mit lokalen Variablen und aktuelles Environment
 
-            else:
-                # eigene Funktion, Syntax: [[p1, p2], [body]]
+                    for p, a in zip(params, args):
+                        newEnv[p] = a
 
-                newEnv = ChainMap({}, env) # neue Umgebung mit lokalen, globalen Variablen und Builtins
-
-                params = func[0]
-                body = func[1]
-
-                # alle parameter abspeichern in buitins
-                for p, a in zip(params, args):
-                    newEnv[p] = a
-
-                return evaluate(body, newEnv)
+                    print(newEnv, "\n")
+                    return evaluate(body, newEnv)
+                
+                case _:
+                    return func(*args)
                 
 
 #===================== Input
