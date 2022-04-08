@@ -2,6 +2,7 @@
 import math
 from sys import argv
 from sys import version_info
+from collections import ChainMap
 
 if version_info.major != 3 or version_info.minor != 10:
     print("This script needs at least Python version 3.10 as it uses structural pattern matching. Please update and try again.")
@@ -56,7 +57,6 @@ def sqrt(a):
 def expt(a, b):
     return a ** b
 
-
 builtins = {
     '+':    add,
     '-':    sub,
@@ -68,53 +68,58 @@ builtins = {
     'pi':   3.141592653589793,
 }
 
+globalEnv = ChainMap({}, builtins) # ChainMap mit globalen Variablen und Builtins
+
 #---------------------
-def evaluate(x):
-    """Evaluates the tokenized and parsed program"""
-    match x:
+def evaluate(expr, env):
+    """Evaluates the tokenized and parsed expression"""
+    match expr:
         case int(num) | float(num):
             return num
         
         case str(name):
-            return builtins[name]
+            return env[name]
         
         case ['var', name, value]:
-            value = evaluate(value)
-            builtins[name] = value
+            value = evaluate(value, env)
+            env[name] = value
             return value
         
         case ['func', name, [params, body]]:
-            builtins[name] = [params, body]
+            env[name] = [params, body]
             return f"New function '{name}'"
         
         case [operator, *args]:
-            func = builtins[operator]
-            args = [evaluate(arg) for arg in args]
+            func = env[operator]
+            args = [evaluate(arg, env) for arg in args]
 
             if callable(func):
                 # Eingebaute Funktion
                 return func(*args)
 
             else:
-                # eigene Funktion: [[p1, p2], [body]]
+                # eigene Funktion, Syntax: [[p1, p2], [body]]
+
+                newEnv = ChainMap({}, env) # neue Umgebung mit lokalen, globalen Variablen und Builtins
+
                 params = func[0]
                 body = func[1]
 
                 # alle parameter abspeichern in buitins
                 for p, a in zip(params, args):
-                    builtins[p] = a
+                    newEnv[p] = a
 
-                return evaluate(body)
+                return evaluate(body, newEnv)
                 
 
 #===================== Input
 def repl():
-    print("Press 'q' or 'x' to exit program.")
+    print("Type 'quit' or 'exit' to exit program.")
     done = False
     while not done:
         try:
             prog = input('> ').strip()
-            if prog.lower() in ('q', 'quit', 'exit', 'x'):
+            if prog.lower() in ('quit', 'exit'):
                 done = True
 
             elif prog.lower()[0:2] == 'f:':
@@ -123,10 +128,10 @@ def repl():
                 with open(filename) as f:
                     content = f.read()
                 
-                print(evaluate(parse(tokenize(content))))
+                print(evaluate(parse(tokenize(content)), globalEnv))
 
             else:
-                print(evaluate(parse(tokenize(prog))))
+                print(evaluate(parse(tokenize(prog)), globalEnv))
         except Exception as e:
             print('Error', repr(e))
 
@@ -147,8 +152,7 @@ if __name__ == '__main__' and testScript:
         (mult, (2, 3), 6),
         (div, (7, 2), 3.5),
         (sqrt, (64,), 8.0),
-        (expt, (2, 5), 32),
-        (evaluate, (['*', ['+', 5, 9], ['-', 11, ['/', 128, 16]]],), 42)
+        (expt, (2, 5), 32)
     ]
     ok = True
     for func, args, expected_out in tests:
