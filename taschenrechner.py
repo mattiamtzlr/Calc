@@ -21,7 +21,7 @@ def parse(tokens: list):
         lst = []
         while tokens[0] != ')':
             lst.append(parse(tokens)) # solange parsen bis keine klammer mehr
-        tokens.pop(0)
+        tokens.pop(0) # pop closed bracket
         return lst
     else:
         return parse_atom(token)
@@ -54,6 +54,12 @@ def div(a, b):
 def equals(a, b):
     return a == b
 
+def greater(a, b):
+    return a > b
+
+def less(a, b):
+    return a < b
+
 def sqrt(a):
     return math.sqrt(a)
 
@@ -66,6 +72,8 @@ builtins = {
     '*':    mult,
     '/':    div,
     '==':   equals,
+    '>':    greater,
+    '<':    less,
     'sqrt': sqrt,
     'expt': expt,
     'e':    2.718281828459045,
@@ -118,7 +126,6 @@ def evaluate(expr, env):
                     for p, a in zip(params, args):
                         newEnv[p] = a
 
-                    print(newEnv, "\n")
                     return evaluate(body, newEnv)
                 
                 case _:
@@ -143,7 +150,7 @@ def repl():
                 
                 print(evaluate(parse(tokenize(content)), globalEnv))
 
-            else:
+            elif prog != "":
                 print(evaluate(parse(tokenize(prog)), globalEnv))
         except Exception as e:
             print('Error', repr(e))
