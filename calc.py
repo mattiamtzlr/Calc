@@ -1,10 +1,17 @@
+# TODO:
+#   - Print         DONE
+#   - >=, <=, !=    DONE
+#   - Input         DONE
+#   - Strings
+#   - Loops
+
 #---------------------
 import math
 from sys import argv
 from sys import version_info
 from collections import ChainMap
 
-if version_info.major != 3 or version_info.minor != 10:
+if version_info.major < 3 or version_info.minor < 10:
     print("This script needs at least Python version 3.10 as it uses structural pattern matching. Please update and try again.")
     input()
     exit()
@@ -54,11 +61,20 @@ def div(a, b):
 def equals(a, b):
     return a == b
 
+def notequals(a, b):
+    return a != b
+
 def greater(a, b):
     return a > b
 
+def greaterEquals(a, b):
+    return a >= b
+
 def less(a, b):
     return a < b
+
+def lessEquals(a, b):
+    return a <= b
 
 def sqrt(a):
     return math.sqrt(a)
@@ -66,19 +82,73 @@ def sqrt(a):
 def expt(a, b):
     return a ** b
 
+def _print(*args):
+    for arg in args:
+        print(arg)
+    return ""
+
+def _input(*args):
+    try:
+        return int(input("Input: ")) # at the moment only numbers
+    
+    except ValueError:
+        return "Input currently only works with numbers."
+
+
 builtins = {
-    '+':    add,
-    '-':    sub,
-    '*':    mult,
-    '/':    div,
-    '==':   equals,
-    '>':    greater,
-    '<':    less,
-    'sqrt': sqrt,
-    'expt': expt,
-    'e':    2.718281828459045,
-    'pi':   3.141592653589793,
+    '+':        add,
+    '-':        sub,
+    '*':        mult,
+    '/':        div,
+    '==':       equals,
+    '!=':       notequals,
+    '>':        greater,
+    '>=':       greaterEquals,
+    '<':        less,
+    '<=':       lessEquals,
+    'sqrt':     sqrt,
+    'expt':     expt,
+    'print':    _print,
+    'input':    _input,
 }
+
+library = """
+(block
+    (var e 2.718281828459045)
+    (var pi 3.141592653589793)
+
+    (func factorial (
+        (n) 
+        (if
+            (< n 2)
+            1
+            (* n (factorial (- n 1)))
+        )
+    ))
+
+    (func pythagoras (
+        (a b) 
+        (sqrt 
+            (+ 
+                (expt a 2) 
+                (expt b 2)
+            )
+        )
+    ))
+
+    (func countdown (
+        (x)
+        (if 
+            (== x 0)
+            0
+            (block
+                (print x)
+                (countdown (- x 1))
+            )
+        )
+    ))
+)
+"""
 
 globalEnv = ChainMap({}, builtins) # ChainMap mit globalen Variablen und Builtins
 
@@ -101,7 +171,7 @@ def evaluate(expr, env):
             env[name] = [params, body]
             return f"New function '{name}'"
         
-        case ["if", condition, _do, _else]:
+        case ['if', condition, _do, _else]:
 
             # (if
             #   (== 4 6)        | condition
@@ -114,6 +184,32 @@ def evaluate(expr, env):
             else:
                 return evaluate(_else, env)
         
+        case ['block', *statements, _return]:
+
+            # Evaluates multiple statements and returns the result of the last one
+            # (block
+            #   (var a 5) 
+            #   (var b 7)
+            #   (* a b)
+            # )
+            # --> 35
+
+            for statement in statements:
+                evaluate(statement, env)
+            
+            return evaluate(_return, env)
+        
+        case ['import', filename]:
+            try:
+                with open(filename) as f:
+                    content = f.read()
+                    
+                return evaluate(parse(tokenize(content)), globalEnv)
+            
+            except FileNotFoundError:
+                return f"No such file or directory: '{filename}'"
+
+        # Funktionen
         case [operator, *args]:
             func = env[operator]
             args = [evaluate(arg, env) for arg in args]
@@ -134,6 +230,9 @@ def evaluate(expr, env):
 
 #===================== Input
 def repl():
+    # load library
+    evaluate(parse(tokenize(library)), globalEnv)
+
     print("Type 'quit' or 'exit' to exit program.")
     done = False
     while not done:
@@ -142,16 +241,9 @@ def repl():
             if prog.lower() in ('quit', 'exit'):
                 done = True
 
-            elif prog.lower()[0:2] == 'f:':
-                filename = prog.split(maxsplit=1)[1]
-
-                with open(filename) as f:
-                    content = f.read()
-                
-                print(evaluate(parse(tokenize(content)), globalEnv))
-
             elif prog != "":
                 print(evaluate(parse(tokenize(prog)), globalEnv))
+
         except Exception as e:
             print('Error', repr(e))
 
