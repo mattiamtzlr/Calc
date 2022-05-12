@@ -76,9 +76,6 @@ def less(a, b):
 def lessEquals(a, b):
     return a <= b
 
-def sqrt(a):
-    return math.sqrt(a)
-
 def expt(a, b):
     return a ** b
 
@@ -106,7 +103,6 @@ builtins = {
     '>=':       greaterEquals,
     '<':        less,
     '<=':       lessEquals,
-    'sqrt':     sqrt,
     'expt':     expt,
     'print':    _print,
     'input':    _input,
@@ -116,6 +112,16 @@ library = """
 (block
     (var e 2.718281828459045)
     (var pi 3.141592653589793)
+
+    (func square (
+        (x) 
+        (* x x)
+    ))
+
+    (func sqrt (
+        (x)
+        (expt x 0.5)
+    ))
 
     (func factorial (
         (n) 
@@ -160,12 +166,12 @@ def evaluate(expr, env):
         case ['var', name, value]:
             value = evaluate(value, env)
             env[name] = value
-            return value
+            return ""
         
         case ['func', name, [params, body]]:
             # env gets saved for closures
             env[name] = [params, body, env]
-            return f"New function '{name}'"
+            return ""
         
         case ['if', condition, _do, _else]:
 
@@ -243,7 +249,9 @@ def repl():
                 done = True
 
             elif prog != "":
-                print(evaluate(parse(tokenize(prog)), globalEnv))
+                result = evaluate(parse(tokenize(prog)), globalEnv)
+                if result != "":
+                    print(result)
 
         except Exception as e:
             print('Error', repr(e))
