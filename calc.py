@@ -2,11 +2,13 @@
 #   - Print         DONE
 #   - >=, <=, !=    DONE
 #   - Input         DONE
-#   - Strings
+#   - Comments      DONE
+#   - Strings       DONE
 #   - Loops
 
 #---------------------
-import math
+from time import sleep
+import re
 from sys import argv
 from sys import version_info
 from collections import ChainMap
@@ -16,8 +18,14 @@ if version_info.major < 3 or version_info.minor < 10:
     input()
     exit()
 
+comment = re.compile("/\*.*\*/")
+
 def tokenize(program: str) -> list[str]:
-    """Tokenizes the program by adding spaces around brackets and splitting it afterwards"""
+    """Tokenizes the program by adding spaces around brackets and splitting it afterwards.
+    This also removes comments"""
+
+    program = comment.sub("", program)
+
     return program.replace("(", " ( ").replace(")", " ) ").split()
 
 #---------------------
@@ -58,6 +66,9 @@ def mult(a, b):
 def div(a, b):
     return a / b
 
+def mod(a, b):
+    return a % b
+
 def equals(a, b):
     return a == b
 
@@ -97,6 +108,7 @@ builtins = {
     '-':        sub,
     '*':        mult,
     '/':        div,
+    '%':        mod,
     '==':       equals,
     '!=':       notequals,
     '>':        greater,
@@ -106,6 +118,7 @@ builtins = {
     'expt':     expt,
     'print':    _print,
     'input':    _input,
+    'sleep':    sleep,
 }
 
 library = """
@@ -144,6 +157,7 @@ library = """
             0
             (block
                 (print x)
+                (sleep 1)
                 (countdown (- x 1))
             )
         )
@@ -154,7 +168,7 @@ library = """
 globalEnv = ChainMap({}, builtins) # ChainMap mit globalen Variablen und Builtins
 
 #---------------------
-def evaluate(expr, env):
+def evaluate(expr, env=globalEnv):
     """Evaluates the tokenized and parsed expression"""
     match expr:
         case int(num) | float(num):
@@ -162,6 +176,10 @@ def evaluate(expr, env):
         
         case str(name):
             return env[name]
+
+        case ["string", *rest]:
+            # joins rest back together while converting anything to strings via list comprehension
+            return " ".join(str(element) for element in rest)
         
         case ['var', name, value]:
             value = evaluate(value, env)
@@ -206,7 +224,7 @@ def evaluate(expr, env):
                 with open(filename) as f:
                     content = f.read()
                     
-                return evaluate(parse(tokenize(content)), globalEnv)
+                return evaluate(parse(tokenize(content)))
             
             except FileNotFoundError:
                 return f"No such file or directory: '{filename}'"
@@ -234,13 +252,13 @@ def evaluate(expr, env):
 #===================== Input
 def repl():
     # load library
-    evaluate(parse(tokenize(library)), globalEnv)
+    evaluate(parse(tokenize(library)))
 
     if len(argv) == 2:
         script, filename = argv
-        print(evaluate(parse(tokenize(f"(import {filename})")), globalEnv))
+        print(evaluate(parse(tokenize(f"(import {filename})"))))
 
-    print("\nType 'quit' or 'exit' to exit program.")
+    print("Type 'quit' or 'exit' to exit program.")
     done = False
     while not done:
         try:
@@ -249,11 +267,12 @@ def repl():
                 done = True
 
             elif prog != "":
-                result = evaluate(parse(tokenize(prog)), globalEnv)
-                if result != "":
+                result = evaluate(parse(tokenize(prog)))
+                if result not in ("", None):
                     print(result)
 
         except Exception as e:
             print('Error', repr(e))
 
-repl()
+if __name__ == "__main__":
+    repl()
