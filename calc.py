@@ -4,7 +4,7 @@
 #   - Input         DONE
 #   - Comments      DONE
 #   - Strings       DONE
-#   - Loops
+#   - While-Loops   DONE
 
 #---------------------
 from time import sleep
@@ -18,7 +18,7 @@ if version_info.major < 3 or version_info.minor < 10:
     input()
     exit()
 
-comment = re.compile("/\*.*\*/")
+comment = re.compile("/\*.*\*/") # RegEx to filter out comments
 
 def tokenize(program: str) -> list[str]:
     """Tokenizes the program by adding spaces around brackets and splitting it afterwards.
@@ -54,71 +54,36 @@ def parse_atom(token):
     return token
 
 #---------------------
-def add(a, b):
-    return a + b 
-
-def sub(a, b):
-    return a - b
-
-def mult(a, b):
-    return a * b
-
-def div(a, b):
-    return a / b
-
-def mod(a, b):
-    return a % b
-
-def equals(a, b):
-    return a == b
-
-def notequals(a, b):
-    return a != b
-
-def greater(a, b):
-    return a > b
-
-def greaterEquals(a, b):
-    return a >= b
-
-def less(a, b):
-    return a < b
-
-def lessEquals(a, b):
-    return a <= b
-
-def expt(a, b):
-    return a ** b
-
-def _print(*args):
-    for arg in args:
-        print(arg)
-    return ""
-
-def _input(*args):
+def _input(prompt):
+    result = input(f"{prompt} ")
     try:
-        return int(input("Input: ")) # at the moment only numbers
-    
-    except ValueError:
-        return "Input currently only works with numbers."
+        return int(result)
 
+    except ValueError:
+        try:
+            return float(result)
+
+        except ValueError:
+            return result
 
 builtins = {
-    '+':        add,
-    '-':        sub,
-    '*':        mult,
-    '/':        div,
-    '%':        mod,
-    '==':       equals,
-    '!=':       notequals,
-    '>':        greater,
-    '>=':       greaterEquals,
-    '<':        less,
-    '<=':       lessEquals,
-    'expt':     expt,
-    'print':    _print,
+    '+':        lambda a, b : a + b,
+    '-':        lambda a, b : a - b,
+    '*':        lambda a, b : a * b,
+    '/':        lambda a, b : a / b,
+    '%':        lambda a, b : a % b,
+
+    '==':       lambda a, b : a == b,
+    '!=':       lambda a, b : a != b,
+    '>':        lambda a, b : a > b,
+    '>=':       lambda a, b : a >= b,
+    '<':        lambda a, b : a < b,
+    '<=':       lambda a, b : a <= b,
+    'expt':     lambda a, b : a ** b,
+    
     'input':    _input,
     'sleep':    sleep,
+    'print':    print,
 }
 
 library = """
@@ -184,15 +149,29 @@ def evaluate(expr, env=globalEnv):
         case ['var', name, value]:
             value = evaluate(value, env)
             env[name] = value
-            return ""
+            return None
         
-        case ['func', name, [params, body]]:
-            # env gets saved for closures
-            env[name] = [params, body, env]
-            return ""
+        case ['+=', name, increment]:
+            var = env[name]
+            env[name] = var + increment
+            return None
+        
+        case ['-=', name, decrement]:
+            var = env[name]
+            env[name] = var - decrement
+            return None
+        
+        case ['*=', name, multiplier]:
+            var = env[name]
+            env[name] = var * multiplier
+            return None
+        
+        case ['/=', name, quotient]:
+            var = env[name]
+            env[name] = var / quotient
+            return None
         
         case ['if', condition, _do, _else]:
-
             # (if
             #   (== 4 6)        | condition
             #   (+ 2 3)         | return if condition is true
@@ -204,8 +183,20 @@ def evaluate(expr, env=globalEnv):
             else:
                 return evaluate(_else, env)
         
-        case ['block', *statements, _return]:
+        case ['while', condition, _do]:
+            # similar structure as if-statement
+            results = []
+            while evaluate(condition, env):
+                evaluate(_do, env)
 
+            return None
+        
+        case ['func', name, [params, body]]:
+            # env gets saved for closures
+            env[name] = [params, body, env]
+            return None
+        
+        case ['block', *statements, _return]:
             # Evaluates multiple statements and returns the result of the last one
             # (block
             #   (var a 5) 
@@ -229,7 +220,7 @@ def evaluate(expr, env=globalEnv):
             except FileNotFoundError:
                 return f"No such file or directory: '{filename}'"
 
-        # Funktionen
+        # functions
         case [operator, *args]:
             func = env[operator]
             args = [evaluate(arg, env) for arg in args]
@@ -256,9 +247,9 @@ def repl():
 
     if len(argv) == 2:
         script, filename = argv
-        print(evaluate(parse(tokenize(f"(import {filename})"))))
+        evaluate(parse(tokenize(f"(import {filename})")))
 
-    print("Type 'quit' or 'exit' to exit program.")
+    print("\nType 'quit' or 'exit' to exit program.")
     done = False
     while not done:
         try:
