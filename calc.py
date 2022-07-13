@@ -5,6 +5,7 @@
 #   - Comments      DONE
 #   - Strings       DONE
 #   - While-Loops   DONE
+#   - Errors
 
 #---------------------
 from time import sleep
@@ -18,13 +19,13 @@ if version_info.major < 3 or version_info.minor < 10:
     input()
     exit()
 
-comment = re.compile("/\*.*\*/") # RegEx to filter out comments
+comment = re.compile("#.*#") # RegEx to filter out comments
 
 def tokenize(program: str) -> list[str]:
     """Tokenizes the program by adding spaces around brackets and splitting it afterwards.
     This also removes comments"""
 
-    program = comment.sub("", program)
+    program = comment.sub("", program) # remove comments
 
     return program.replace("(", " ( ").replace(")", " ) ").split()
 
@@ -53,7 +54,7 @@ def parse_atom(token):
             pass
     return token
 
-#---------------------
+#--------------------- Builtin Functions
 def _input(prompt):
     result = input(f"{prompt} ")
     try:
@@ -185,7 +186,6 @@ def evaluate(expr, env=globalEnv):
         
         case ['while', condition, _do]:
             # similar structure as if-statement
-            results = []
             while evaluate(condition, env):
                 evaluate(_do, env)
 
@@ -193,7 +193,7 @@ def evaluate(expr, env=globalEnv):
         
         case ['func', name, [params, body]]:
             # env gets saved for closures
-            env[name] = [params, body, env]
+            env[name] = [name, params, body, env]
             return None
         
         case ['block', *statements, _return]:
@@ -226,11 +226,13 @@ def evaluate(expr, env=globalEnv):
             args = [evaluate(arg, env) for arg in args]
 
             match func:
-                case [params, body, parentEnv]:
+                case [funcName, params, body, parentEnv]:
                     # defined functions
                     # create new env with env of potential parent function which includes the global env
                     newEnv = ChainMap({}, parentEnv) 
 
+                    if len(params) != len(args):
+                        return f"Error: '{funcName}' takes {len(params)} arguments ({', '.join(params)}), but {len(args)} {'was' if len(args) == 1 else 'were'} given"
                     for p, a in zip(params, args):
                         newEnv[p] = a
 
